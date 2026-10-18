@@ -1,0 +1,16 @@
+{
+  "name": "Calorie Tracker App",
+  "short_name": "CalorieApp",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4CAF50",
+  "description": "A simple application to track and calculate daily calories.",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
