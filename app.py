@@ -1,12 +1,12 @@
 import os
 import re
-import requests
 from flask import Flask, request, render_template_string
+from google import genai
 
 app = Flask(__name__)
 
-# استدعاء مفتاح OpenRouter من متغيرات البيئة بأمان تام
-OPENROUTER_API_KEY = os.environ.get("GEMINI_API_KEY")
+# استدعاء مفتاح Google AI Studio من متغيرات البيئة
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 HTML_PAGE = """
 <!DOCTYPE html>
@@ -529,50 +529,23 @@ def index():
 
             if file and file.filename != "":
                 try:
-                    import base64
                     image_bytes = file.read()
-                    encoded_image = base64.b64encode(image_bytes).decode('utf-8')
                     mime_type = file.content_type or "image/jpeg"
-                    image_url = f"data:{mime_type};base64,{encoded_image}"
 
-                    headers = {
-                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                        "Content-Type": "application/json"
-                    }
-                    
-                    payload = {
-                        "model": "google/gemini-2.5-flash",
-                        "messages": [
+                    # الاتصال المباشر بنماذج جوجل الرسمية عبر مكتبة google-genai
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=[
                             {
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": "أنت خبير تغذية. قم بتحليل هذه الصورة وتقديم اسم الوجبة، واكتب سطرًا بهذا الشكل تمامًا: 'السعرات الحرارية: [الرقم]' متبوعًا بـ 'سعرة حرارية'، ثم اذكر العناصر الغذائية (بروتين، كارب، دهون) وأية ملاحظات مفيدة باللغة العربية."
-                                    },
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": image_url
-                                        }
-                                    }
-                                ]
-                            }
+                                "inline_data": {
+                                    "data": image_bytes,
+                                    "mime_type": mime_type
+                                }
+                            },
+                            "أنت خبير تغذية. قم بتحليل هذه الصورة وتقديم اسم الوجبة، واكتب سطرًا بهذا الشكل تمامًا: 'السعرات الحرارية: [الرقم]' متبوعًا بـ 'سعرة حرارية'، ثم اذكر العناصر الغذائية (بروتين، كارب، دهون) وأية ملاحظات مفيدة باللغة العربية."
                         ]
-                    }
-
-                    response = requests.post(
-                        "https://openrouter.ai/api/v1/chat/completions",
-                        headers=headers,
-                        json=payload
                     )
-                    
-                    res_data = response.json()
-                    
-                    if response.status_code == 200:
-                        result = res_data['choices'][0]['message']['content']
-                    else:
-                        result = f"خطأ من OpenRouter: {res_data.get('error', {}).get('message', 'Unknown error')}"
+                    result = response.text
 
                     match = re.search(r'السعرات\sالحرارية[:\s](\d+)', result)
                     if not match:
@@ -657,4 +630,3 @@ def manifest():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
-
