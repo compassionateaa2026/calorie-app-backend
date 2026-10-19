@@ -23,9 +23,9 @@ HTML_PAGE = """
 --primary-color: #78350F;
 --primary-hover: #451A03;
 --bg-color: #000000;
---card-bg: rgba(15, 15, 15, 0.88);
+--card-bg: rgba(0, 0, 0, 0.55);
 --text-color: #F3F4F6;
---border-color: #4B5563;
+--border-color: rgba(255, 255, 255, 0.2);
 }
 
 * {
@@ -37,10 +37,10 @@ font-family: 'Cairo', sans-serif;
 
 body {
 background-color: var(--bg-color);
-/* تعديل الطبقة الشفافة ورابط الصورة لضمان ظهور تفاصيل العضلات بوضوح */
-background-image: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url('https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
+/* صورة واضحة جداً ومباشرة لرجل رياضي بنسبة دهون منخفضة بدون طبقات مظلمة كثيفة */
+background-image: url('https://images.pexels.com/photos/1229356/pexels-photo-1229356.jpeg?auto=compress&cs=tinysrgb&w=800');
 background-size: cover;
-background-position: center top;
+background-position: center center;
 background-repeat: no-repeat;
 background-attachment: fixed;
 color: var(--text-color);
@@ -54,13 +54,15 @@ min-height: 100vh;
 width: 100%;
 max-width: 500px;
 background: var(--card-bg);
-border: 1px solid #374151;
+border: 1px solid var(--border-color);
 border-radius: 20px;
 padding: 24px;
-box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
 height: fit-content;
 position: relative;
-backdrop-filter: blur(3px);
+/* إضافة تأثير التأطير الشفاف لظهور ما خلف الكارت */
+backdrop-filter: blur(4px);
+-webkit-backdrop-filter: blur(4px);
 }
 
 .header {
@@ -72,12 +74,14 @@ margin-bottom: 20px;
 font-size: 1.4rem;
 color: #FFFFFF;
 font-weight: 700;
+text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .header p {
 font-size: 0.85rem;
-color: #9CA3AF;
+color: #E5E7EB;
 margin-top: 4px;
+text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
 #install-btn {
@@ -96,8 +100,8 @@ box-shadow: 0 4px 12px rgba(120, 53, 15, 0.3);
 }
 
 .tracker-card {
-background: rgba(31, 41, 55, 0.7);
-border: 1px solid #4B5563;
+background: rgba(0, 0, 0, 0.45);
+border: 1px solid rgba(255, 255, 255, 0.15);
 border-radius: 14px;
 padding: 14px;
 margin-bottom: 16px;
@@ -113,13 +117,13 @@ margin-top: 8px;
 .tracker-item span {
 display: block;
 font-size: 0.75rem;
-color: #9CA3AF;
+color: #D1D5DB;
 font-weight: 600;
 }
 
 .tracker-item strong {
 font-size: 1.1rem;
-color: #E5E7EB;
+color: #FFFFFF;
 }
 
 .target-input-row {
@@ -132,16 +136,16 @@ align-items: center;
 .target-input-row label {
 font-size: 0.8rem;
 font-weight: 600;
-color: #9CA3AF;
+color: #E5E7EB;
 white-space: nowrap;
 }
 
 .target-input-row input {
 flex: 1;
 padding: 6px 10px;
-background: #1F2937;
+background: rgba(0, 0, 0, 0.6);
 color: #FFFFFF;
-border: 1px solid #4B5563;
+border: 1px solid rgba(255, 255, 255, 0.25);
 border-radius: 8px;
 font-size: 0.85rem;
 outline: none;
@@ -151,10 +155,10 @@ outline: none;
 display: flex;
 gap: 4px;
 margin-bottom: 20px;
-background: #1F2937;
+background: rgba(0, 0, 0, 0.5);
 padding: 4px;
 border-radius: 12px;
-border: 1px solid #374151;
+border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .tab-btn {
@@ -167,14 +171,14 @@ border-radius: 8px;
 font-weight: 600;
 cursor: pointer;
 font-size: 0.75rem;
-color: #9CA3AF;
+color: #D1D5DB;
 transition: all 0.2s;
 }
 
 .tab-btn.active {
-background: #374151;
+background: rgba(255, 255, 255, 0.2);
 color: #FFFFFF;
-box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+box-shadow: 0 2px 5px rgba(0,0,0,0.4);
 }
 
 .tab-content {
@@ -194,23 +198,23 @@ display: block;
 margin-bottom: 4px;
 font-size: 0.85rem;
 font-weight: 600;
-color: #9CA3AF;
+color: #E5E7EB;
 }
 
 .form-control {
 width: 100%;
 padding: 10px 12px;
-border: 1px solid #4B5563;
+border: 1px solid rgba(255, 255, 255, 0.25);
 border-radius: 10px;
 font-size: 0.9rem;
 outline: none;
-background: #1F2937;
+background: rgba(0, 0, 0, 0.6);
 color: #FFFFFF;
 }
 
 .form-control:focus {
 border-color: var(--primary-color);
-background: #111827;
+background: rgba(0, 0, 0, 0.8);
 }
 
 .action-buttons {
@@ -221,18 +225,18 @@ margin-bottom: 12px;
 
 .upload-card {
 flex: 1;
-border: 2px dashed #4B5563;
+border: 2px dashed rgba(255, 255, 255, 0.3);
 border-radius: 14px;
 padding: 14px 8px;
 text-align: center;
-background: rgba(31, 41, 55, 0.4);
+background: rgba(0, 0, 0, 0.35);
 cursor: pointer;
 position: relative;
 }
 
 .upload-card:hover {
 border-color: var(--primary-color);
-background: rgba(120, 53, 15, 0.2);
+background: rgba(120, 53, 15, 0.3);
 }
 
 .upload-icon {
@@ -243,7 +247,7 @@ display: block;
 
 .upload-card span:not(.upload-icon) {
 font-size: 0.8rem;
-color: #9CA3AF;
+color: #E5E7EB;
 font-weight: 600;
 }
 
@@ -261,7 +265,7 @@ z-index: 10;
 .file-name {
 margin-top: 8px;
 font-size: 0.8rem;
-color: var(--primary-color);
+color: #FBBF24;
 font-weight: 600;
 word-break: break-all;
 text-align: center;
@@ -278,7 +282,7 @@ font-size: 0.95rem;
 font-weight: 700;
 cursor: pointer;
 margin-top: 6px;
-box-shadow: 0 4px 12px rgba(120, 53, 15, 0.4);
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .btn-submit:hover {
@@ -300,7 +304,7 @@ color: #FFFFFF;
 .markdown-content {
 font-size: 0.9rem;
 line-height: 1.6;
-color: #D1D5DB;
+color: #F3F4F6;
 white-space: normal;
 word-break: break-word;
 overflow-wrap: break-word;
@@ -308,7 +312,7 @@ overflow-wrap: break-word;
 
 .markdown-content h3 {
 font-size: 1.05rem;
-color: var(--primary-color);
+color: #FBBF24;
 margin-top: 12px;
 margin-bottom: 6px;
 }
@@ -319,7 +323,7 @@ margin-bottom: 10px;
 }
 
 .markdown-content blockquote {
-background: rgba(120, 53, 15, 0.2);
+background: rgba(120, 53, 15, 0.35);
 border-right: 4px solid var(--primary-color);
 padding: 10px;
 border-radius: 8px;
@@ -566,7 +570,7 @@ def index():
                     mime_type = file.content_type or "image/jpeg"
 
                     response = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model="gemini-3.8-flash",
                         contents=[
                             {
                                 "inline_data": {
@@ -605,7 +609,7 @@ def index():
                     mime_type = file.content_type or "image/jpeg"
 
                     response = client.models.generate_content(
-                        model="gemini-3.8-flash",
+                        model="gemini-2.5-flash",
                         contents=[
                             {
                                 "inline_data": {
