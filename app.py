@@ -5,7 +5,6 @@ from google import genai
 
 app = Flask(__name__)
 
-# استدعاء مفتاح Google AI Studio من متغيرات البيئة
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 HTML_PAGE = """
@@ -140,7 +139,7 @@ outline: none;
 
 .tabs {
 display: flex;
-gap: 6px;
+gap: 4px;
 margin-bottom: 20px;
 background: #E5E7EB;
 padding: 4px;
@@ -149,14 +148,14 @@ border-radius: 12px;
 
 .tab-btn {
 flex: 1;
-padding: 10px;
+padding: 8px 4px;
 text-align: center;
 background: transparent;
 border: none;
 border-radius: 8px;
 font-weight: 600;
 cursor: pointer;
-font-size: 0.85rem;
+font-size: 0.78rem;
 color: #4B5563;
 transition: all 0.2s;
 }
@@ -328,9 +327,11 @@ margin-top: 10px;
 
 <div class="tabs">
 <button type="button" class="tab-btn active" onclick="switchTab('meal')">📸 تحليل الوجبة</button>
+<button type="button" class="tab-btn" onclick="switchTab('body')">🧍‍♂️ تحليل الجسم</button>
 <button type="button" class="tab-btn" onclick="switchTab('calculator')">📊 حاسبة الاحتياج</button>
 </div>
 
+<!-- تاب تحليل الوجبة -->
 <div id="meal-tab" class="tab-content active">
 <div class="tracker-card">
 <div class="target-input-row">
@@ -369,6 +370,39 @@ margin-top: 10px;
 </form>
 </div>
 
+<!-- تاب تحليل الجسم -->
+<div id="body-tab" class="tab-content">
+<form method="post" enctype="multipart/form-data">
+<input type="hidden" name="form_type" value="body_analysis">
+<div class="form-group">
+<label>الجنس</label>
+<select name="body_gender" class="form-control" required>
+<option value="male">ذكر</option>
+<option value="female">أنثى</option>
+</select>
+</div>
+<div class="form-group">
+<label>العمر (سنوات)</label>
+<input type="number" name="body_age" class="form-control" placeholder="مثال: 25">
+</div>
+<div class="action-buttons" style="margin-top: 12px;">
+<div class="upload-card">
+<span class="upload-icon">📸</span>
+<span>تصوير الجسم بالكاميرا</span>
+<input type="file" name="body_camera_image" id="body-camera-input" class="file-input" accept="image/*" capture="environment" onchange="handleBodyFileSelect(this, 'camera')">
+</div>
+<div class="upload-card">
+<span class="upload-icon">📁</span>
+<span>رفع صورة الجسم</span>
+<input type="file" name="body_device_image" id="body-device-input" class="file-input" accept="image/*" onchange="handleBodyFileSelect(this, 'device')">
+</div>
+</div>
+<div id="body-file-name" class="file-name"></div>
+<button type="submit" class="btn-submit">تحليل الجسم ونسبة الدهون</button>
+</form>
+</div>
+
+<!-- تاب حاسبة الاحتياج -->
 <div id="calculator-tab" class="tab-content">
 <form method="post">
 <input type="hidden" name="form_type" value="calculator">
@@ -423,8 +457,11 @@ margin-top: 10px;
 const rawText = {{ result|tojson }};
 document.getElementById('result-content').innerHTML = marked.parse(rawText);
 
-if ("{{ active_tab }}" === "calculator") {
+const activeTab = "{{ active_tab }}";
+if (activeTab === "calculator") {
 switchTab('calculator');
+} else if (activeTab === "body") {
+switchTab('body');
 }
 </script>
 {% endif %}
@@ -438,7 +475,7 @@ loadTrackerState();
 {% if extracted_calories and extracted_calories > 0 %}
 let storedConsumed = parseInt(localStorage.getItem('daily_consumed')) || 0;
 let lastProcessed = sessionStorage.getItem('last_processed_cals');
-let currentResponseMarker = "{{ result[:30] if result else '' }}";
+let currentResponseMarker = "{{ result[:30] }}";
 
 if (lastProcessed !== currentResponseMarker) {
 storedConsumed += {{ extracted_calories }};
@@ -484,8 +521,11 @@ document.querySelectorAll('.tab-content').forEach(content => content.classList.r
 if (tabName === 'meal') {
 document.querySelectorAll('.tab-btn')[0].classList.add('active');
 document.getElementById('meal-tab').classList.add('active');
-} else {
+} else if (tabName === 'body') {
 document.querySelectorAll('.tab-btn')[1].classList.add('active');
+document.getElementById('body-tab').classList.add('active');
+} else {
+document.querySelectorAll('.tab-btn')[2].classList.add('active');
 document.getElementById('calculator-tab').classList.add('active');
 }
 }
@@ -504,6 +544,21 @@ cameraInput.value = "";
 fileNameDiv.innerText = "تم اختيار الصورة: " + input.files[0].name;
 }
 }
+
+function handleBodyFileSelect(input, source) {
+const fileNameDiv = document.getElementById('body-file-name');
+const cameraInput = document.getElementById('body-camera-input');
+const deviceInput = document.getElementById('body-device-input');
+
+if (input.files && input.files[0]) {
+if (source === 'camera') {
+deviceInput.value = "";
+} else {
+cameraInput.value = "";
+}
+fileNameDiv.innerText = "تم اختيار صورة الجسم: " + input.files[0].name;
+}
+}
 </script>
 
 </body>
@@ -512,121 +567,153 @@ fileNameDiv.innerText = "تم اختيار الصورة: " + input.files[0].name
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    result = None
-    active_tab = "meal"
-    extracted_calories = 0
+result = None
+active_tab = "meal"
+extracted_calories = 0
 
-    if request.method == "POST":
-        form_type = request.form.get("form_type")
+if request.method == "POST":
+form_type = request.form.get("form_type")
 
-        if form_type == "meal":
-            active_tab = "meal"
-            file = None
-            if "camera_image" in request.files and request.files["camera_image"].filename != "":
-                file = request.files["camera_image"]
-            elif "device_image" in request.files and request.files["device_image"].filename != "":
-                file = request.files["device_image"]
+if form_type == "meal":
+active_tab = "meal"
+file = None
+if "camera_image" in request.files and request.files["camera_image"].filename != "":
+file = request.files["camera_image"]
+elif "device_image" in request.files and request.files["device_image"].filename != "":
+file = request.files["device_image"]
 
-            if file and file.filename != "":
-                try:
-                    image_bytes = file.read()
-                    mime_type = file.content_type or "image/jpeg"
+if file and file.filename != "":
+try:
+image_bytes = file.read()
+mime_type = file.content_type or "image/jpeg"
 
-                    # الاتصال المباشر بنماذج جوجل الرسمية عبر مكتبة google-genai
-                    response = client.models.generate_content(
-                        model="gemini-3.8-flash",
-                        contents=[
-                            {
-                                "inline_data": {
-                                    "data": image_bytes,
-                                    "mime_type": mime_type
-                                }
-                            },
-                            "أنت خبير تغذية. قم بتحليل هذه الصورة وتقديم اسم الوجبة، واكتب سطرًا بهذا الشكل تمامًا: 'السعرات الحرارية: [الرقم]' متبوعًا بـ 'سعرة حرارية'، ثم اذكر العناصر الغذائية (بروتين، كارب، دهون) وأية ملاحظات مفيدة باللغة العربية."
-                        ]
-                    )
-                    result = response.text
+response = client.models.generate_content(
+model="gemini-3.8-flash",
+contents=[
+{
+"inline_data": {
+"data": image_bytes,
+"mime_type": mime_type
+}
+},
+"أنت خبير تغذية. قم بتحليل هذه الصورة وتقديم اسم الوجبة، واكتب سطرًا بهذا الشكل تمامًا: 'السعرات الحرارية: [الرقم]' متبوعًا بـ 'سعرة حرارية'، ثم اذكر العناصر الغذائية (بروتين، كارب، دهون) وأية ملاحظات مفيدة باللغة العربية."
+]
+)
+result = response.text
 
-                    match = re.search(r'السعرات\sالحرارية[:\s](\d+)', result)
-                    if not match:
-                        match = re.search(r'(\d+)\s*سعرة', result)
+match = re.search(r'السعرات\sالحرارية[:\s](\d+)', result)
+if not match:
+match = re.search(r'(\d+)\s*سعرة', result)
 
-                    if match:
-                        extracted_calories = int(match.group(1))
+if match:
+extracted_calories = int(match.group(1))
 
-                except Exception as e:
-                    result = f"حدث خطأ أثناء التحليل: {e}"
-            else:
-                result = "الرجاء اختيار صورة أو التقاطها أولاً."
+except Exception as e:
+result = f"حدث خطأ أثناء التحليل: {e}"
+else:
+result = "الرجاء اختيار صورة أو التقاطها أولاً."
 
-        elif form_type == "calculator":
-            active_tab = "calculator"
-            try:
-                gender = request.form.get("gender")
-                weight = float(request.form.get("weight"))
-                height = float(request.form.get("height"))
-                age = int(request.form.get("age"))
-                activity = float(request.form.get("activity"))
-                goal = request.form.get("goal")
+elif form_type == "body_analysis":
+active_tab = "body"
+file = None
+if "body_camera_image" in request.files and request.files["body_camera_image"].filename != "":
+file = request.files["body_camera_image"]
+elif "body_device_image" in request.files and request.files["body_device_image"].filename != "":
+file = request.files["body_device_image"]
 
-                if gender == "male":
-                    bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
-                else:
-                    bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
+if file and file.filename != "":
+try:
+image_bytes = file.read()
+mime_type = file.content_type or "image/jpeg"
+body_gender = request.form.get("body_gender", "غير محدد")
+body_age = request.form.get("body_age", "غير محدد")
 
-                tdee = bmr * activity
+response = client.models.generate_content(
+model="gemini-3.8-flash",
+contents=[
+{
+"inline_data": {
+"data": image_bytes,
+"mime_type": mime_type
+}
+},
+f"أنت خبير لياقة بدنية ومدرب شخصي. قم بتحليل صورة الجسم المرفقة (الجنس: {body_gender}، العمر: {body_age}) وتقدير نسبة دهون الجسم تقريباً، مع تقييم بنية الجسم والعضلات، واقترح نصائح رياضية وغذائية مخصصة للتحسين. تنبيه: وضح بوضوح في بداية التقرير أن هذه النتيجة استرشادية تقديرية وليست تشخيصاً طبياً دقيقاً."
+]
+)
+result = response.text
+except Exception as e:
+result = f"حدث خطأ أثناء تحليل الجسم: {e}"
+else:
+result = "الرجاء اختيار صورة الجسم أو التقاطها أولاً."
 
-                if goal == "lose":
-                    target = tdee - 400
-                    goal_desc = "تخفيف الوزن (عجز 400 سعرة حرارية يومياً)"
-                elif goal == "gain":
-                    target = tdee + 400
-                    goal_desc = "زيادة الوزن وبناء العضلات (فائض 400 سعرة حرارية يومياً)"
-                else:
-                    target = tdee
-                    goal_desc = "ثبات الوزن"
+elif form_type == "calculator":
+active_tab = "calculator"
+try:
+gender = request.form.get("gender")
+weight = float(request.form.get("weight"))
+height = float(request.form.get("height"))
+age = int(request.form.get("age"))
+activity = float(request.form.get("activity"))
+goal = request.form.get("goal")
 
-                result = f"""### تقرير السعرات اليومية 📊
+if gender == "male":
+bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
+else:
+bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
+
+tdee = bmr * activity
+
+if goal == "lose":
+target = tdee - 400
+goal_desc = "تخفيف الوزن (عجز 400 سعرة حرارية يومياً)"
+elif goal == "gain":
+target = tdee + 400
+goal_desc = "زيادة الوزن وبناء العضلات (فائض 400 سعرة حرارية يومياً)"
+else:
+target = tdee
+goal_desc = "ثبات الوزن"
+
+result = f"""### تقرير السعرات اليومية 📊
 • معدل الأيض الأساسي (BMR): {round(bmr)} سعرة حرارية
 • السعرات لحفظ الوزن (TDEE): {round(tdee)} سعرة حرارية
 • الهدف: {goal_desc}
-• السعرات المستهدفة يومياً:{round(target)} سعرة حرارية
+• السعرات المستهدفة يومياً: {round(target)} سعرة حرارية
 
 ملاحظة غذائية: يمكنك نقل رقم السعرات المستهدفة إلى حقل الهدف اليومي في تاب تحليل الوجبات لمتابعة سعراتك وخصم وجباتك أولاً بأول!"""
-            except Exception as e:
-                result = f"حدث خطأ أثناء الحساب: {e}"
+except Exception as e:
+result = f"حدث خطأ أثناء الحساب: {e}"
 
-    return render_template_string(HTML_PAGE, result=result, active_tab=active_tab, extracted_calories=extracted_calories)
+return render_template_string(HTML_PAGE, result=result, active_tab=active_tab, extracted_calories=extracted_calories)
 
 @app.route('/sw.js')
 def service_worker():
-    sw_code = """
-    self.addEventListener('install', (e) => {
-    console.log('Service Worker: Installed');
-    });
-    self.addEventListener('fetch', (e) => {
-    });
-    """
-    return sw_code, 200, {'Content-Type': 'application/javascript'}
+sw_code = """
+self.addEventListener('install', (e) => {
+console.log('Service Worker: Installed');
+});
+self.addEventListener('fetch', (e) => {
+});
+"""
+return sw_code, 200, {'Content-Type': 'application/javascript'}
 
 @app.route('/manifest.json')
 def manifest():
-    return {
-        "name": "نظام السعرات الحرارية الذكي",
-        "short_name": "السعرات",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#ffffff",
-        "theme_color": "#10B981",
-        "description": "تطبيق ذكي لتحليل السعرات الحرارية وحساب الاحتياج اليومي",
-        "icons": [
-            {
-                "src": "https://via.placeholder.com/512",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
-    }
+return {
+"name": "نظام السعرات الحرارية الذكي",
+"short_name": "السعرات",
+"start_url": "/",
+"display": "standalone",
+"background_color": "#ffffff",
+"theme_color": "#10B981",
+"description": "تطبيق ذكي لتحليل السعرات الحرارية وحساب الاحتياج اليومي",
+"icons": [
+{
+"src": "https://via.placeholder.com/512",
+"sizes": "512x512",
+"type": "image/png"
+}
+]
+}
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+app.run(host="0.0.0.0", port=5000)
