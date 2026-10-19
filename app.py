@@ -567,153 +567,153 @@ fileNameDiv.innerText = "تم اختيار صورة الجسم: " + input.files[
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-result = None
-active_tab = "meal"
-extracted_calories = 0
+    result = None
+    active_tab = "meal"
+    extracted_calories = 0
 
-if request.method == "POST":
-form_type = request.form.get("form_type")
+    if request.method == "POST":
+        form_type = request.form.get("form_type")
 
-if form_type == "meal":
-active_tab = "meal"
-file = None
-if "camera_image" in request.files and request.files["camera_image"].filename != "":
-file = request.files["camera_image"]
-elif "device_image" in request.files and request.files["device_image"].filename != "":
-file = request.files["device_image"]
+        if form_type == "meal":
+            active_tab = "meal"
+            file = None
+            if "camera_image" in request.files and request.files["camera_image"].filename != "":
+                file = request.files["camera_image"]
+            elif "device_image" in request.files and request.files["device_image"].filename != "":
+                file = request.files["device_image"]
 
-if file and file.filename != "":
-try:
-image_bytes = file.read()
-mime_type = file.content_type or "image/jpeg"
+            if file and file.filename != "":
+                try:
+                    image_bytes = file.read()
+                    mime_type = file.content_type or "image/jpeg"
 
-response = client.models.generate_content(
-model="gemini-3.8-flash",
-contents=[
-{
-"inline_data": {
-"data": image_bytes,
-"mime_type": mime_type
-}
-},
-"أنت خبير تغذية. قم بتحليل هذه الصورة وتقديم اسم الوجبة، واكتب سطرًا بهذا الشكل تمامًا: 'السعرات الحرارية: [الرقم]' متبوعًا بـ 'سعرة حرارية'، ثم اذكر العناصر الغذائية (بروتين، كارب، دهون) وأية ملاحظات مفيدة باللغة العربية."
-]
-)
-result = response.text
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=[
+                            {
+                                "inline_data": {
+                                    "data": image_bytes,
+                                    "mime_type": mime_type
+                                }
+                            },
+                            "أنت خبير تغذية. قم بتحليل هذه الصورة وتقديم اسم الوجبة، واكتب سطرًا بهذا الشكل تمامًا: 'السعرات الحرارية: [الرقم]' متبوعًا بـ 'سعرة حرارية'، ثم اذكر العناصر الغذائية (بروتين، كارب، دهون) وأية ملاحظات مفيدة باللغة العربية."
+                        ]
+                    )
+                    result = response.text
 
-match = re.search(r'السعرات\sالحرارية[:\s](\d+)', result)
-if not match:
-match = re.search(r'(\d+)\s*سعرة', result)
+                    match = re.search(r'السعرات\sالحرارية[:\s](\d+)', result)
+                    if not match:
+                        match = re.search(r'(\d+)\s*سعرة', result)
 
-if match:
-extracted_calories = int(match.group(1))
+                    if match:
+                        extracted_calories = int(match.group(1))
 
-except Exception as e:
-result = f"حدث خطأ أثناء التحليل: {e}"
-else:
-result = "الرجاء اختيار صورة أو التقاطها أولاً."
+                except Exception as e:
+                    result = f"حدث خطأ أثناء التحليل: {e}"
+            else:
+                result = "الرجاء اختيار صورة أو التقاطها أولاً."
 
-elif form_type == "body_analysis":
-active_tab = "body"
-file = None
-if "body_camera_image" in request.files and request.files["body_camera_image"].filename != "":
-file = request.files["body_camera_image"]
-elif "body_device_image" in request.files and request.files["body_device_image"].filename != "":
-file = request.files["body_device_image"]
+        elif form_type == "body_analysis":
+            active_tab = "body"
+            file = None
+            if "body_camera_image" in request.files and request.files["body_camera_image"].filename != "":
+                file = request.files["body_camera_image"]
+            elif "body_device_image" in request.files and request.files["body_device_image"].filename != "":
+                file = request.files["body_device_image"]
 
-if file and file.filename != "":
-try:
-image_bytes = file.read()
-mime_type = file.content_type or "image/jpeg"
-body_gender = request.form.get("body_gender", "غير محدد")
-body_age = request.form.get("body_age", "غير محدد")
+            if file and file.filename != "":
+                try:
+                    image_bytes = file.read()
+                    mime_type = file.content_type or "image/jpeg"
+                    body_gender = request.form.get("body_gender", "غير محدد")
+                    body_age = request.form.get("body_age", "غير محدد")
 
-response = client.models.generate_content(
-model="gemini-3.8-flash",
-contents=[
-{
-"inline_data": {
-"data": image_bytes,
-"mime_type": mime_type
-}
-},
-f"أنت خبير لياقة بدنية ومدرب شخصي. قم بتحليل صورة الجسم المرفقة (الجنس: {body_gender}، العمر: {body_age}) وتقدير نسبة دهون الجسم تقريباً، مع تقييم بنية الجسم والعضلات، واقترح نصائح رياضية وغذائية مخصصة للتحسين. تنبيه: وضح بوضوح في بداية التقرير أن هذه النتيجة استرشادية تقديرية وليست تشخيصاً طبياً دقيقاً."
-]
-)
-result = response.text
-except Exception as e:
-result = f"حدث خطأ أثناء تحليل الجسم: {e}"
-else:
-result = "الرجاء اختيار صورة الجسم أو التقاطها أولاً."
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=[
+                            {
+                                "inline_data": {
+                                    "data": image_bytes,
+                                    "mime_type": mime_type
+                                }
+                            },
+                            f"أنت خبير لياقة بدنية ومدرب شخصي. قم بتحليل صورة الجسم المرفقة (الجنس: {body_gender}، العمر: {body_age}) وتقدير نسبة دهون الجسم تقريباً، مع تقييم بنية الجسم والعضلات، واقترح نصائح رياضية وغذائية مخصصة للتحسين. تنبيه: وضح بوضوح في بداية التقرير أن هذه النتيجة استرشادية تقديرية وليست تشخيصاً طبياً دقيقاً."
+                        ]
+                    )
+                    result = response.text
+                except Exception as e:
+                    result = f"حدث خطأ أثناء تحليل الجسم: {e}"
+            else:
+                result = "الرجاء اختيار صورة الجسم أو التقاطها أولاً."
 
-elif form_type == "calculator":
-active_tab = "calculator"
-try:
-gender = request.form.get("gender")
-weight = float(request.form.get("weight"))
-height = float(request.form.get("height"))
-age = int(request.form.get("age"))
-activity = float(request.form.get("activity"))
-goal = request.form.get("goal")
+        elif form_type == "calculator":
+            active_tab = "calculator"
+            try:
+                gender = request.form.get("gender")
+                weight = float(request.form.get("weight"))
+                height = float(request.form.get("height"))
+                age = int(request.form.get("age"))
+                activity = float(request.form.get("activity"))
+                goal = request.form.get("goal")
 
-if gender == "male":
-bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
-else:
-bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
+                if gender == "male":
+                    bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
+                else:
+                    bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
 
-tdee = bmr * activity
+                tdee = bmr * activity
 
-if goal == "lose":
-target = tdee - 400
-goal_desc = "تخفيف الوزن (عجز 400 سعرة حرارية يومياً)"
-elif goal == "gain":
-target = tdee + 400
-goal_desc = "زيادة الوزن وبناء العضلات (فائض 400 سعرة حرارية يومياً)"
-else:
-target = tdee
-goal_desc = "ثبات الوزن"
+                if goal == "lose":
+                    target = tdee - 400
+                    goal_desc = "تخفيف الوزن (عجز 400 سعرة حرارية يومياً)"
+                elif goal == "gain":
+                    target = tdee + 400
+                    goal_desc = "زيادة الوزن وبناء العضلات (فائض 400 سعرة حرارية يومياً)"
+                else:
+                    target = tdee
+                    goal_desc = "ثبات الوزن"
 
-result = f"""### تقرير السعرات اليومية 📊
+                result = f"""### تقرير السعرات اليومية 📊
 • معدل الأيض الأساسي (BMR): {round(bmr)} سعرة حرارية
 • السعرات لحفظ الوزن (TDEE): {round(tdee)} سعرة حرارية
 • الهدف: {goal_desc}
 • السعرات المستهدفة يومياً: {round(target)} سعرة حرارية
 
 ملاحظة غذائية: يمكنك نقل رقم السعرات المستهدفة إلى حقل الهدف اليومي في تاب تحليل الوجبات لمتابعة سعراتك وخصم وجباتك أولاً بأول!"""
-except Exception as e:
-result = f"حدث خطأ أثناء الحساب: {e}"
+            except Exception as e:
+                result = f"حدث خطأ أثناء الحساب: {e}"
 
-return render_template_string(HTML_PAGE, result=result, active_tab=active_tab, extracted_calories=extracted_calories)
+    return render_template_string(HTML_PAGE, result=result, active_tab=active_tab, extracted_calories=extracted_calories)
 
 @app.route('/sw.js')
 def service_worker():
-sw_code = """
-self.addEventListener('install', (e) => {
-console.log('Service Worker: Installed');
-});
-self.addEventListener('fetch', (e) => {
-});
-"""
-return sw_code, 200, {'Content-Type': 'application/javascript'}
+    sw_code = """
+    self.addEventListener('install', (e) => {
+    console.log('Service Worker: Installed');
+    });
+    self.addEventListener('fetch', (e) => {
+    });
+    """
+    return sw_code, 200, {'Content-Type': 'application/javascript'}
 
 @app.route('/manifest.json')
 def manifest():
-return {
-"name": "نظام السعرات الحرارية الذكي",
-"short_name": "السعرات",
-"start_url": "/",
-"display": "standalone",
-"background_color": "#ffffff",
-"theme_color": "#10B981",
-"description": "تطبيق ذكي لتحليل السعرات الحرارية وحساب الاحتياج اليومي",
-"icons": [
-{
-"src": "https://via.placeholder.com/512",
-"sizes": "512x512",
-"type": "image/png"
-}
-]
-}
+    return {
+        "name": "نظام السعرات الحرارية الذكي",
+        "short_name": "السعرات",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#10B981",
+        "description": "تطبيق ذكي لتحليل السعرات الحرارية وحساب الاحتياج اليومي",
+        "icons": [
+            {
+                "src": "https://via.placeholder.com/512",
+                "sizes": "512x512",
+                "type": "image/png"
+            }
+        ]
+    }
 
 if __name__ == "__main__":
-app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000)
