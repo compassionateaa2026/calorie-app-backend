@@ -146,7 +146,7 @@ outline: none;
 
 .tabs {
 display: flex;
-gap: 6px;
+gap: 4px;
 margin-bottom: 20px;
 background: #1F2937;
 padding: 4px;
@@ -156,14 +156,14 @@ border: 1px solid #374151;
 
 .tab-btn {
 flex: 1;
-padding: 10px;
+padding: 8px;
 text-align: center;
 background: transparent;
 border: none;
 border-radius: 8px;
 font-weight: 600;
 cursor: pointer;
-font-size: 0.85rem;
+font-size: 0.75rem;
 color: #9CA3AF;
 transition: all 0.2s;
 }
@@ -331,14 +331,16 @@ margin-top: 10px;
 
 <div class="header">
 <h2>نظام السعرات الذكي 🥗</h2>
-<p>حلل وجبتك واخصم سعراتها من رصيدك اليومي تلقائياً</p>
+<p>حلل وجبتك واخصم سعراتها أو حلل نسبة دهون جسمك بدقة</p>
 </div>
 
 <div class="tabs">
 <button type="button" class="tab-btn active" onclick="switchTab('meal')">📸 تحليل الوجبة</button>
+<button type="button" class="tab-btn" onclick="switchTab('body')">💪 تحليل الجسم</button>
 <button type="button" class="tab-btn" onclick="switchTab('calculator')">📊 حاسبة الاحتياج</button>
 </div>
 
+<!-- تاب تحليل الوجبة -->
 <div id="meal-tab" class="tab-content active">
 <div class="tracker-card">
 <div class="target-input-row">
@@ -364,19 +366,41 @@ margin-top: 10px;
 <div class="upload-card">
 <span class="upload-icon">📸</span>
 <span>تصوير بالكاميرا</span>
-<input type="file" name="camera_image" id="camera-input" class="file-input" accept="image/*" capture="environment" onchange="handleFileSelect(this, 'camera')">
+<input type="file" name="camera_image" id="meal-camera-input" class="file-input" accept="image/*" capture="environment" onchange="handleFileSelect(this, 'meal-file-name')">
 </div>
 <div class="upload-card">
 <span class="upload-icon">📁</span>
 <span>رفع من الجهاز</span>
-<input type="file" name="device_image" id="device-input" class="file-input" accept="image/*" onchange="handleFileSelect(this, 'device')">
+<input type="file" name="device_image" id="meal-device-input" class="file-input" accept="image/*" onchange="handleFileSelect(this, 'meal-file-name')">
 </div>
 </div>
-<div id="file-name" class="file-name"></div>
+<div id="meal-file-name" class="file-name"></div>
 <button type="submit" class="btn-submit">تحليل الوجبة وخصم السعرات</button>
 </form>
 </div>
 
+<!-- تاب تحليل الجسم -->
+<div id="body-tab" class="tab-content">
+<form method="post" enctype="multipart/form-data">
+<input type="hidden" name="form_type" value="body">
+<div class="action-buttons">
+<div class="upload-card">
+<span class="upload-icon">📸</span>
+<span>تصوير بالكاميرا</span>
+<input type="file" name="body_camera_image" id="body-camera-input" class="file-input" accept="image/*" capture="environment" onchange="handleFileSelect(this, 'body-file-name')">
+</div>
+<div class="upload-card">
+<span class="upload-icon">📁</span>
+<span>رفع من الجهاز</span>
+<input type="file" name="body_device_image" id="body-device-input" class="file-input" accept="image/*" onchange="handleFileSelect(this, 'body-file-name')">
+</div>
+</div>
+<div id="body-file-name" class="file-name"></div>
+<button type="submit" class="btn-submit">تحليل نسبة دهون الجسم</button>
+</form>
+</div>
+
+<!-- تاب حاسبة الاحتياج -->
 <div id="calculator-tab" class="tab-content">
 <form method="post">
 <input type="hidden" name="form_type" value="calculator">
@@ -431,8 +455,11 @@ margin-top: 10px;
 const rawText = {{ result|tojson }};
 document.getElementById('result-content').innerHTML = marked.parse(rawText);
 
-if ("{{ active_tab }}" === "calculator") {
+const activeTab = "{{ active_tab }}";
+if (activeTab === "calculator") {
 switchTab('calculator');
+} else if (activeTab === "body") {
+switchTab('body');
 }
 </script>
 {% endif %}
@@ -441,16 +468,6 @@ switchTab('calculator');
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 loadTrackerState();
-
-const parsedMealCalories = "{{ extracted_calories }}";
-if (parsedMealCalories && parsedMealCalories !== "0") {
-const mealCals = parseInt(parsedMealCalories);
-let currentConsumed = parseInt(localStorage.getItem('daily_consumed')) || 0;
-
-const lastSessionMeal = sessionStorage.getItem('last_meal_added');
-if (lastSessionMeal !== parsedMealCalories + "_" + Date.now()) {
-}
-}
 });
 
 {% if extracted_calories and extracted_calories > 0 %}
@@ -502,23 +519,18 @@ document.querySelectorAll('.tab-content').forEach(content => content.classList.r
 if (tabName === 'meal') {
 document.querySelectorAll('.tab-btn')[0].classList.add('active');
 document.getElementById('meal-tab').classList.add('active');
-} else {
+} else if (tabName === 'body') {
 document.querySelectorAll('.tab-btn')[1].classList.add('active');
+document.getElementById('body-tab').classList.add('active');
+} else {
+document.querySelectorAll('.tab-btn')[2].classList.add('active');
 document.getElementById('calculator-tab').classList.add('active');
 }
 }
 
-function handleFileSelect(input, source) {
-const fileNameDiv = document.getElementById('file-name');
-const cameraInput = document.getElementById('camera-input');
-const deviceInput = document.getElementById('device-input');
-
+function handleFileSelect(input, targetNameId) {
+const fileNameDiv = document.getElementById(targetNameId);
 if (input.files && input.files[0]) {
-if (source === 'camera') {
-deviceInput.value = "";
-} else {
-cameraInput.value = "";
-}
 fileNameDiv.innerText = "تم اختيار الصورة: " + input.files[0].name;
 }
 }
@@ -551,7 +563,7 @@ def index():
                     mime_type = file.content_type or "image/jpeg"
 
                     response = client.models.generate_content(
-                        model="gemini-3.8-flash",
+                        model="gemini-2.5-flash",
                         contents=[
                             {
                                 "inline_data": {
@@ -575,6 +587,37 @@ def index():
                     result = f"حدث خطأ أثناء التحليل: {e}"
             else:
                 result = "الرجاء اختيار صورة أو التقاطها أولاً."
+
+        elif form_type == "body":
+            active_tab = "body"
+            file = None
+            if "body_camera_image" in request.files and request.files["body_camera_image"].filename != "":
+                file = request.files["body_camera_image"]
+            elif "body_device_image" in request.files and request.files["body_device_image"].filename != "":
+                file = request.files["body_device_image"]
+
+            if file and file.filename != "":
+                try:
+                    image_bytes = file.read()
+                    mime_type = file.content_type or "image/jpeg"
+
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=[
+                            {
+                                "inline_data": {
+                                    "data": image_bytes,
+                                    "mime_type": mime_type
+                                }
+                            },
+                            "أنت خبير لياقة بدنية واختصاصي قياس تكوين الجسم. قم بتحليل هذه الصورة لتقدير نسبة دهون الجسم (Body Fat Percentage) تقريبياً، وتقدير الكتلة العضلية، وقدم نصائح رياضية وغذاء مناسبة للوصول إلى جسم مثالي باللغة العربية."
+                        ]
+                    )
+                    result = response.text
+                except Exception as e:
+                    result = f"حدث خطأ أثناء تحليل الجسم: {e}"
+            else:
+                result = "الرجاء اختيار أو التقاط صورة للجسم أولاً."
 
         elif form_type == "calculator":
             active_tab = "calculator"
@@ -609,7 +652,7 @@ def index():
 • الهدف: {goal_desc}
 • السعرات المستهدفة يومياً: {round(target)} سعرة حرارية
 
-ملاحظة غذائية: يمكنك نقل رقم السعرات المستهدفة إلى حقل الهدف اليومي في تاب تحليل الوجبات لمتابعة سعراتك وخصم وجباتك أولاً بأول!"""
+ملاحظة غذائية: يمكنك نقل رقم السعرات المستهدفة إلى حقل الهدف اليومي لمتابعة سعراتك أولاً بأول!"""
             except Exception as e:
                 result = f"حدث خطأ أثناء الحساب: {e}"
 
@@ -635,7 +678,7 @@ def manifest():
         "display": "standalone",
         "background_color": "#000000",
         "theme_color": "#78350F",
-        "description": "تطبيق ذكي لتحليل السعرات الحرارية وحساب الاحتياج اليومي",
+        "description": "تطبيق ذكي لتحليل السعرات الحرارية وحساب الاحتياج وتحليل نسبة الدهون",
         "icons": [
             {
                 "src": "https://via.placeholder.com/512",
