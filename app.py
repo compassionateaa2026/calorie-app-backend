@@ -23,7 +23,7 @@ HTML_PAGE = """
 --primary-color: #78350F;
 --primary-hover: #451A03;
 --bg-color: #000000;
---card-bg: rgba(15, 15, 15, 0.85);
+--card-bg: rgba(15, 15, 15, 0.88);
 --text-color: #F3F4F6;
 --border-color: #4B5563;
 }
@@ -37,9 +37,11 @@ font-family: 'Cairo', sans-serif;
 
 body {
 background-color: var(--bg-color);
-background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url('https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?q=80&w=1000&auto=format&fit=crop');
+/* تعديل الطبقة الشفافة ورابط الصورة لضمان ظهور تفاصيل العضلات بوضوح */
+background-image: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url('https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
 background-size: cover;
-background-position: center;
+background-position: center top;
+background-repeat: no-repeat;
 background-attachment: fixed;
 color: var(--text-color);
 display: flex;
@@ -55,9 +57,10 @@ background: var(--card-bg);
 border: 1px solid #374151;
 border-radius: 20px;
 padding: 24px;
-box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
 height: fit-content;
 position: relative;
+backdrop-filter: blur(3px);
 }
 
 .header {
@@ -563,7 +566,7 @@ def index():
                     mime_type = file.content_type or "image/jpeg"
 
                     response = client.models.generate_content(
-                        model="gemini-3.8-flash",
+                        model="gemini-2.5-flash",
                         contents=[
                             {
                                 "inline_data": {
